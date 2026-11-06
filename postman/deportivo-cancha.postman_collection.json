@@ -1,0 +1,868 @@
+{
+	"info": {
+		"_postman_id": "7a3c4210-9b5d-4f11-a3b4-deportivo-cancha-01",
+		"name": "Deportivo System - Cancha API",
+		"description": "Colección completa de pruebas de API para el módulo Cancha del sistema deportivo, incluyendo creación, consulta por ID, filtrado por tenant, actualización y eliminación con pruebas de autorización JWT (HTTP 201, 200, 204, 400, 401, 404).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "created_cancha_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "second_cancha_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tenant_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Autenticación (Obtener Token)",
+			"item": [
+				{
+					"name": "0.1 Login SuperAdmin - Guardar Token JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Save token into auth_token variable\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.accessToken).to.be.a('string');",
+									"    pm.collectionVariables.set(\"auth_token\", jsonData.accessToken);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Iniciar sesión como SuperAdmin para obtener el token JWT necesario para los endpoints protegidos de Canchas."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. POST - Crear Cancha",
+			"item": [
+				{
+					"name": "1.1 Crear Cancha - Exitosa (201)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains valid Cancha details\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.be.a('number');",
+									"    pm.expect(jsonData.nombre).to.eql(\"Cancha 3 Sintética\");",
+									"    pm.expect(jsonData.tipoDeporte).to.eql(\"FULBITO\");",
+									"    pm.expect(jsonData.precioPorHora).to.eql(100.0);",
+									"    pm.expect(jsonData.activa).to.be.true;",
+									"    pm.collectionVariables.set(\"created_cancha_id\", jsonData.id);",
+									"});",
+									"",
+									"pm.test(\"Header Location is present\", function () {",
+									"    pm.response.to.have.header(\"Location\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 1,\n  \"nombre\": \"Cancha 3 Sintética\",\n  \"tipoDeporte\": \"FULBITO\",\n  \"precioPorHora\": 100.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Caso de prueba: Registrar una nueva cancha válida asociándola al tenantId 1."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Crear Cancha - Faltan campos requeridos (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Response code is VALIDATION_ERROR\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"VALIDATION_ERROR\");",
+									"    pm.expect(jsonData.status).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"\",\n  \"precioPorHora\": -50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Caso de prueba: Intentar crear cancha con campos obligatorios vacíos o valores inválidos."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Crear Cancha - Tenant Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Response code is NOT_FOUND\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"NOT_FOUND\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 999999,\n  \"nombre\": \"Cancha Tenant Inexistente\",\n  \"tipoDeporte\": \"PADEL\",\n  \"precioPorHora\": 80.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Caso de prueba: Intentar registrar cancha asociada a un tenantId inexistente."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Crear Cancha - Sin Autenticación (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 1,\n  \"nombre\": \"Cancha Sin Token\",\n  \"tipoDeporte\": \"PADEL\",\n  \"precioPorHora\": 75.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Caso de prueba: Intentar crear cancha sin cabecera Authorization Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Crear Segunda Cancha para Pruebas (201)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Save second cancha id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"second_cancha_id\", jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 1,\n  \"nombre\": \"Cancha Auxiliar San Isidro\",\n  \"tipoDeporte\": \"PADEL\",\n  \"precioPorHora\": 85.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Crear una segunda cancha auxiliar para pruebas de listado y posterior eliminación."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. GET - Obtener Cancha por ID",
+			"item": [
+				{
+					"name": "2.1 Obtener Cancha por ID - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Cancha ID matches request\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.eql(parseInt(pm.collectionVariables.get(\"created_cancha_id\")));",
+									"    pm.expect(jsonData.nombre).to.eql(\"Cancha 3 Sintética\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/{{created_cancha_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"{{created_cancha_id}}"
+							]
+						},
+						"description": "Caso de prueba: Consultar cancha por ID existente (Público)."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Obtener Cancha por ID - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Response code is NOT_FOUND\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"NOT_FOUND\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Consultar cancha con ID 999999 inexistente."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. GET - Listar Canchas",
+			"item": [
+				{
+					"name": "3.1 Listar Todas las Canchas (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns an array of canchas\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							]
+						},
+						"description": "Caso de prueba: Obtener el catálogo global de canchas (Público)."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Listar Canchas por tenantId (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All items belong to specified tenantId\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.tenantId).to.eql(1);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas?tenantId=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							],
+							"query": [
+								{
+									"key": "tenantId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Caso de prueba: Listar canchas pertenecientes al tenantId 1."
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Listar Canchas por tenantId y activa=true (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All returned items are active for tenant 1\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.tenantId).to.eql(1);",
+									"        pm.expect(item.activa).to.be.true;",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas?tenantId=1&activa=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas"
+							],
+							"query": [
+								{
+									"key": "tenantId",
+									"value": "1"
+								},
+								{
+									"key": "activa",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Caso de prueba: Listar canchas activas del tenantId 1."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. GET - Listar Canchas por Ruta Tenant",
+			"item": [
+				{
+					"name": "4.1 Canchas por Tenant Path - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array for tenant 1\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/tenant/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"tenant",
+								"1"
+							]
+						},
+						"description": "Caso de prueba: Obtener canchas por ruta /api/canchas/tenant/{tenantId}."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Canchas por Tenant Path - Tenant Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/tenant/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"tenant",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Consultar canchas de un tenant inexistente por su ruta."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. PUT - Actualizar Cancha",
+			"item": [
+				{
+					"name": "5.1 Actualizar Cancha - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Cancha data updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.nombre).to.eql(\"Cancha 3 Sintética Remodelada\");",
+									"    pm.expect(jsonData.precioPorHora).to.eql(130.0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 1,\n  \"nombre\": \"Cancha 3 Sintética Remodelada\",\n  \"tipoDeporte\": \"FULBITO\",\n  \"precioPorHora\": 130.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas/{{created_cancha_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"{{created_cancha_id}}"
+							]
+						},
+						"description": "Caso de prueba: Actualizar nombre y precio de una cancha existente."
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Actualizar Cancha - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantId\": 1,\n  \"nombre\": \"Cancha Inexistente\",\n  \"tipoDeporte\": \"PADEL\",\n  \"precioPorHora\": 90.00,\n  \"activa\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/canchas/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Intentar actualizar cancha que no existe."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. DELETE - Eliminar Cancha",
+			"item": [
+				{
+					"name": "6.1 Eliminar Cancha - Exitoso (204)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/{{created_cancha_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"{{created_cancha_id}}"
+							]
+						},
+						"description": "Caso de prueba: Eliminar cancha creada en la prueba."
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 Eliminar Cancha - Inexistente o Ya Eliminada (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/{{created_cancha_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"{{created_cancha_id}}"
+							]
+						},
+						"description": "Caso de prueba: Intentar eliminar una cancha ya eliminada."
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Limpieza - Eliminar Segunda Cancha (204)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/canchas/{{second_cancha_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"canchas",
+								"{{second_cancha_id}}"
+							]
+						},
+						"description": "Limpieza: Eliminar la segunda cancha creada de prueba."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

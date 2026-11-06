@@ -1,0 +1,821 @@
+{
+	"info": {
+		"_postman_id": "8b4d5321-0c6e-4f22-b4c5-deportivo-horario-01",
+		"name": "Deportivo System - Horario Atencion API",
+		"description": "Colección completa de pruebas de API para el módulo desacoplado Horarios de Atención del sistema deportivo, incluyendo pruebas de creación, rango horario válido, prevención de solapamientos, consulta por cancha, actualización masiva y eliminación con autenticación JWT Bearer (HTTP 201, 200, 204, 400, 401, 404).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "created_horario_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cancha_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Autenticación (Obtener Token)",
+			"item": [
+				{
+					"name": "0.1 Login SuperAdmin - Guardar Token JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Save token into auth_token variable\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.accessToken).to.be.a('string');",
+									"    pm.collectionVariables.set(\"auth_token\", jsonData.accessToken);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Iniciar sesión como SuperAdmin para obtener el token JWT necesario para los endpoints de modificación de Horarios."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. POST - Crear Horario de Atención",
+			"item": [
+				{
+					"name": "1.1 Crear Horario - Exitoso (201)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains Horario details\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.be.a('number');",
+									"    pm.expect(jsonData.canchaId).to.eql(1);",
+									"    pm.expect(jsonData.diaSemana).to.eql(2);",
+									"    pm.expect(jsonData.horaApertura).to.eql(\"08:00:00\");",
+									"    pm.expect(jsonData.horaCierre).to.eql(\"22:00:00\");",
+									"    pm.collectionVariables.set(\"created_horario_id\", jsonData.id);",
+									"});",
+									"",
+									"pm.test(\"Header Location is present\", function () {",
+									"    pm.response.to.have.header(\"Location\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 2,\n  \"horaApertura\": \"08:00:00\",\n  \"horaCierre\": \"22:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion"
+							]
+						},
+						"description": "Caso de prueba: Crear un nuevo horario de atención válido para Martes (2) de 08:00 a 22:00 en la cancha 1."
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Crear Horario - Hora Cierre Invalida (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Response code is BUSINESS_ERROR\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"BUSINESS_ERROR\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 3,\n  \"horaApertura\": \"22:00:00\",\n  \"horaCierre\": \"08:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion"
+							]
+						},
+						"description": "Caso de prueba: Intentar crear horario con hora de cierre anterior a la hora de apertura."
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Crear Horario - Solapamiento Horario (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Response code is BUSINESS_ERROR\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.code).to.eql(\"BUSINESS_ERROR\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 2,\n  \"horaApertura\": \"12:00:00\",\n  \"horaCierre\": \"18:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion"
+							]
+						},
+						"description": "Caso de prueba: Intentar registrar horario que se solapa con el horario del Martes (08:00 - 22:00)."
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Crear Horario - Cancha Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 999999,\n  \"diaSemana\": 1,\n  \"horaApertura\": \"08:00:00\",\n  \"horaCierre\": \"20:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion"
+							]
+						},
+						"description": "Caso de prueba: Intentar crear horario para una cancha con ID 999999 inexistente."
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Crear Horario - Sin Token (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 4,\n  \"horaApertura\": \"08:00:00\",\n  \"horaCierre\": \"20:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion"
+							]
+						},
+						"description": "Caso de prueba: Intentar crear horario sin cabecera de autorización JWT."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. GET - Obtener Horario por ID",
+			"item": [
+				{
+					"name": "2.1 Obtener Horario por ID - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Horario ID matches created_horario_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.eql(parseInt(pm.collectionVariables.get(\"created_horario_id\")));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/{{created_horario_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"{{created_horario_id}}"
+							]
+						},
+						"description": "Caso de prueba: Consultar un horario existente por su ID (Público)."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Obtener Horario por ID - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Consultar horario con ID 999999 inexistente."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. GET - Listar Horarios por Cancha",
+			"item": [
+				{
+					"name": "3.1 Listar Horarios por Cancha ID - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns an array of horarios for cancha 1\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.at.least(1);",
+									"    jsonData.forEach(function(item) {",
+									"        pm.expect(item.canchaId).to.eql(1);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/cancha/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"cancha",
+								"1"
+							]
+						},
+						"description": "Caso de prueba: Consultar la lista de horarios de atención configurados para la cancha ID 1."
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Listar Horarios por Cancha - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/cancha/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"cancha",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Listar horarios de una cancha con ID 999999 inexistente."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. PUT - Actualizar Horario de Atención",
+			"item": [
+				{
+					"name": "4.1 Actualizar Horario - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Horario updated successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.horaApertura).to.eql(\"09:00:00\");",
+									"    pm.expect(jsonData.horaCierre).to.eql(\"23:00:00\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 2,\n  \"horaApertura\": \"09:00:00\",\n  \"horaCierre\": \"23:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/{{created_horario_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"{{created_horario_id}}"
+							]
+						},
+						"description": "Caso de prueba: Modificar el rango de horas del horario recién creado."
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Actualizar Horario - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"canchaId\": 1,\n  \"diaSemana\": 3,\n  \"horaApertura\": \"08:00:00\",\n  \"horaCierre\": \"20:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/999999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"999999"
+							]
+						},
+						"description": "Caso de prueba: Actualizar un horario con ID 999999 inexistente."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. PUT - Reemplazar Horarios de una Cancha",
+			"item": [
+				{
+					"name": "5.1 Reemplazar Horarios Masivamente - Exitoso (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns newly replaced horarios array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.eql(2);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"canchaId\": 2,\n    \"diaSemana\": 1,\n    \"horaApertura\": \"08:00:00\",\n    \"horaCierre\": \"22:00:00\"\n  },\n  {\n    \"canchaId\": 2,\n    \"diaSemana\": 5,\n    \"horaApertura\": \"07:00:00\",\n    \"horaCierre\": \"23:00:00\"\n  }\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/cancha/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"cancha",
+								"2"
+							]
+						},
+						"description": "Caso de prueba: Reemplazar masivamente la lista de horarios de la cancha ID 2."
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Reemplazar Horarios - Lista con Solapamientos (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 Bad Request\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"canchaId\": 2,\n    \"diaSemana\": 1,\n    \"horaApertura\": \"08:00:00\",\n    \"horaCierre\": \"16:00:00\"\n  },\n  {\n    \"canchaId\": 2,\n    \"diaSemana\": 1,\n    \"horaApertura\": \"14:00:00\",\n    \"horaCierre\": \"22:00:00\"\n  }\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/cancha/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"cancha",
+								"2"
+							]
+						},
+						"description": "Caso de prueba: Enviar una lista de reemplazo con dos rangos que se solapan en el Lunes (1)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. DELETE - Eliminar Horarios",
+			"item": [
+				{
+					"name": "6.1 Eliminar Horario por ID - Exitoso (204)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/{{created_horario_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"{{created_horario_id}}"
+							]
+						},
+						"description": "Caso de prueba: Eliminar un horario de atención por su ID."
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 Eliminar Horario por ID - Inexistente (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404 Not Found\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/{{created_horario_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"{{created_horario_id}}"
+							]
+						},
+						"description": "Caso de prueba: Intentar eliminar un horario ya eliminado."
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Eliminar Todos los Horarios de Cancha 2 (204)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/horarios-atencion/cancha/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"horarios-atencion",
+								"cancha",
+								"2"
+							]
+						},
+						"description": "Caso de prueba: Eliminar todos los horarios asociados a la cancha 2."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

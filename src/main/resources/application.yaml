@@ -1,0 +1,45 @@
+quarkus:
+  http:
+    port: 8080
+    auth:
+      proactive: false
+  datasource:
+    db-kind: postgresql
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    devservices:
+      enabled: false
+    jdbc:
+      url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:deportivo_db}
+  hibernate-orm:
+    schema-management:
+      strategy: drop-and-create
+    log:
+      sql: true
+  swagger-ui:
+    always-include: true
+    path: /q/swagger-ui
+
+mp:
+  jwt:
+    verify:
+      issuer: ${JWT_ISSUER:deportivo-system}
+      publickey:
+        location: publicKey.pem
+
+smallrye:
+  jwt:
+    sign:
+      key:
+        location: privateKey.pem
+    verify:
+      key:
+        location: publicKey.pem
+
+app:
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:deportivo-system}
+      expiration: ${JWT_EXPIRATION:86400}
+
+
